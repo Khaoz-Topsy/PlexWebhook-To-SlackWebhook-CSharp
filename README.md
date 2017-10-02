@@ -11,7 +11,8 @@ Change the SlackUrl setting in the web.config
 Build and publish
 
 ### Testing
-Build and Run
+Build and Run.
+
 Use Postman to post to localhost:{port}/api/v0/Slack/Default.
 - in the body choose "form-data"
 - add the key "payload"
