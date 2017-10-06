@@ -2,13 +2,8 @@
 using PlexWebhook.Data.Repository;
 using PlexWebhook.Domain.Mapper;
 using PlexWebhook.Domain.Store;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
-using System.Web;
 using System.Web.Http;
 
 namespace PlexWebhook.Api.Controllers
@@ -22,38 +17,33 @@ namespace PlexWebhook.Api.Controllers
         {
             var multiPart = await Request.Content.ReadAsMultipartAsync();
             var requestJson = await multiPart.Contents[0].ReadAsStringAsync();
+            var requestObject = JsonConvert.DeserializeObject<PlexMessage>(requestJson);
 
-            PlexMessage requestObject = JsonConvert.DeserializeObject<PlexMessage>(requestJson);
+            if (requestObject == null) return "Nay";
+            if (!requestObject.IsActionable()) return "Nay";
 
-            if (requestObject != null)
+            var messageContent = new
             {
-                if (requestObject.IsActionable())
+                icon_emoji = ":plex:",
+                attachments = new[]
                 {
-                    var messageContent = new
+                    new
                     {
-                        icon_emoji = ":plex:",
-                        attachments = new[]
-                        {
-                            new
-                            {
-                                fallback = "Required plain-text summary of the attachment.",
-                                color = "#a67a2d",
-                                title = requestObject.CreateTitle(),
-                                text = $"{requestObject.Account.title} at ip: { requestObject.Player.publicAddress}",
-                                thumb_url = "http://khaoznet.xyz/host/Pictures/3.png",
-                                footer = requestObject.GetFooter(),
-                                footer_icon = requestObject.Account.thumb
-                            }
-                        }
-                    };
-
-                    string slackUrl = System.Web.Configuration.WebConfigurationManager.AppSettings["SlackUrl"];
-                    string messageContentJSON = JsonConvert.SerializeObject(messageContent);
-                    SlackRepository slackRepo = new SlackRepository();
-                    slackRepo.SendMessage(slackUrl, messageContentJSON);
-
+                        fallback = "Required plain-text summary of the attachment.",
+                        color = "#a67a2d",
+                        title = requestObject.CreateTitle(),
+                        text = $"{requestObject.Account.title} at ip: { requestObject.Player.publicAddress}",
+                        thumb_url = "http://khaoznet.xyz/host/Pictures/3.png",
+                        footer = requestObject.GetFooter(),
+                        footer_icon = requestObject.Account.thumb
+                    }
                 }
-            }
+            };
+
+            var slackUrl = System.Web.Configuration.WebConfigurationManager.AppSettings["SlackUrl"];
+            var messageContentJson = JsonConvert.SerializeObject(messageContent);
+            var slackRepo = new SlackRepository();
+            slackRepo.SendMessage(slackUrl, messageContentJson);
 
             return "Yay";
         }
